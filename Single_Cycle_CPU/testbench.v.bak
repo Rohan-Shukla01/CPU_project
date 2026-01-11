@@ -1,0 +1,118 @@
+`timescale 1ns/1ps
+
+module testbench;
+
+    // ---------------------------------------------------------
+    // Clock + cycle counter
+    // ---------------------------------------------------------
+    reg clock;
+    integer cycle;
+
+    // Input to CPU
+    reg [15:0] inp;
+
+    // Loop variable
+    integer i;
+
+    // Local parameter for automatic input
+    localparam n = 8;   // You can change this freely
+		
+    // ---------------------------------------------------------
+    // Instantiate CPU
+    // ---------------------------------------------------------
+    i281_CPU uut (
+        .clock(clock),
+        .inp(inp)
+    );
+
+    // ---------------------------------------------------------
+    // Clock generator (100MHz)
+    // ---------------------------------------------------------
+    initial begin
+        clock = 0;
+        forever #5 clock = ~clock;
+    end
+
+    // ---------------------------------------------------------
+    // Cycle counter
+    // ---------------------------------------------------------
+    always @(posedge clock)
+        cycle <= cycle + 1;
+
+    // ---------------------------------------------------------
+    // Input driver: manual → automatic → manual
+    // ---------------------------------------------------------
+    initial begin
+        inp = 0;
+        cycle = 0;
+
+        fork
+            // -------------------------------------------------
+            // MANUAL INPUT #1 at cycle = 10
+            // -------------------------------------------------
+            begin
+                wait (cycle == 2);
+                inp = {8'b00110000, n[7:0]};
+                $display("[Cycle %0d] Manual Input #1 applied: %0d", cycle, inp);
+            end
+
+            // -------------------------------------------------
+            // AUTOMATIC INPUT block starting cycle = 20
+            // Generates: n+1, n, ..., 1
+            // -------------------------------------------------
+            begin
+                wait (cycle == 5);
+
+                $display("[Cycle %0d] Starting automatic input sequence", cycle);
+
+                for (i = n+1; i >= 1; i = i - 1) begin
+                    inp = i;
+                    @(posedge clock);
+                    $display("[Cycle %0d] Auto Input = %0d", cycle, inp);
+                end
+
+                $display("[Cycle %0d] Finished automatic input sequence", cycle);
+            end
+
+            // -------------------------------------------------
+            // MANUAL INPUT #2 at cycle = 80 (after auto block)
+            // -------------------------------------------------
+            begin
+                wait (cycle == 12);
+                inp = {8'b10001100,n[7:0]};
+                $display("[Cycle %0d] Manual Input #2 applied: %0d", cycle, inp);
+            end
+        join
+    end
+
+    // ---------------------------------------------------------
+    // MAIN TEST PROCEDURE
+    // ---------------------------------------------------------
+    initial begin
+        $display("Starting CPU simulation…");
+
+        $dumpfile("cpu_sort.vcd");
+        $dumpvars(0, testbench);
+
+        // Let CPU run for enough cycles to finish bubble sort
+        repeat (20000) @(posedge clock);
+
+        // DUMP DATA MEMORY CONTENT
+        $display("\n--- DATA MEMORY AFTER SIMULATION ---");
+        for (i = 0; i < 16; i = i + 1) begin
+            $display("DMEM[%0d] = %0d", i, uut.DMEM.mem[i]);
+        end
+
+        // VERIFY SORTING
+        for (i = 0; i < 15; i = i + 1) begin
+            if (uut.DMEM.mem[i] > uut.DMEM.mem[i+1]) begin
+                $display("\n❌ ERROR: Data Memory NOT sorted!");
+                $finish;
+            end
+        end
+
+        $display("\n✅ SUCCESS: Data Memory is sorted!");
+        $finish;
+    end
+
+endmodule

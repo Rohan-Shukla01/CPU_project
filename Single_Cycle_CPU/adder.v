@@ -1,0 +1,18 @@
+module adder(A_in, B_in, carry, overflow, A_out, sub);
+	input [7:0] A_in, B_in;
+	output [7:0] A_out;
+	input sub;
+	output carry , overflow;
+	
+	wire [8:0] A_add; // one extra bit to get the carry after addition
+	wire [7:0] B_xor; // value of B after passing through the xor gates depending on the sub
+	wire [7:0] A_1_add; // I will add 7 bits to get the value of carry 7
+	
+	assign B_xor = {8{sub}} ^ B_in;
+	assign A_add = A_in+B_xor+sub;
+	assign A_1_add = A_in[6:0] + B_xor[6:0] + sub;
+	
+	assign A_out= A_add[7:0];
+	assign carry= A_add[8];
+	assign overflow= A_add[8] ^ A_1_add[7];
+endmodule

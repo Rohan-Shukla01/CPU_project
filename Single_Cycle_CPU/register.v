@@ -1,0 +1,19 @@
+module register(A_in, clock, A_out, write_en); 
+	parameter n=8;
+	input [n-1:0] A_in;
+	input clock, write_en;
+	output[n-1:0] A_out;
+	
+	reg [n-1:0] A_temp;
+	
+	initial begin
+		A_temp={n{1'b0}};
+	end
+	always@(posedge clock) begin
+		if(write_en) A_temp<= A_in;
+	end
+	
+	assign A_out=A_temp;
+	
+endmodule
+

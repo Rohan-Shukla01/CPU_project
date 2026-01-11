@@ -1,0 +1,9 @@
+module mux_nbit_2port( select, A_in, B_in, A_out);
+	parameter n=8;
+	input select;
+	input[n-1:0] A_in, B_in;
+	output[n-1:0] A_out;
+	
+	assign A_out= select? A_in : B_in;
+	
+endmodule
