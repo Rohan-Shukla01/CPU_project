@@ -1,0 +1,54 @@
+module controller(A_in, A_vec_4bits, clock, C_out);
+	input[22:0] A_in;
+	input[3:0] A_vec_4bits;
+	input clock;
+	output[17:0] C_out;
+	
+	reg [2:0] state, nextstate;
+	localparam S_idle = 3'b000, S_decode = 3'b001, S2 = 3'b010, S3=3'b011, S4 = 3'b100;
+	always@(posedge clock) begin
+		state<= nextstate;
+	end
+	
+	always@(state, A_in) begin
+		nextstate<= state;
+		C_out<= {18{1'b0}};
+		
+		case(state)
+			S_idle: begin
+				C_out[1]<=1'b1;
+				C_out[13]<=1'b0;
+				C_out[5:4]<=2'b01;
+				C_out[7:6]<=2'b11;
+				C_out[9:8]<=2'b10;
+				C_out[10]<=1'b1;
+				nextstate<=S_decode;
+			end
+			S_decode: begin
+				C_out[11]<= 1'b1;
+				C_out[12]<=1'b1;
+				if(A_in[12]) nextstate<=S2;
+			end
+			S2: begin
+				C_out[5:4]<=2'b10;
+				C_out[7:6]<=2'b01;
+				C_out[9:8]<=2'b10;
+				C_out[10]<=1'b1;
+				nextstate<= S3;
+			end
+			S3: begin
+				C_out[13]<=1'b1;
+				C_out[2]<=1'b1;
+				nextstate<= S4;
+			end
+			S4: begin
+				C_out[15:14]<=2'b01;
+				C_out[3]<=1;
+				nextstate<=S_idle;
+			end
+			default: nextstate<= S_idle;
+		endcase
+	end
+endmodule
+			
+			
